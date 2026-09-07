@@ -1,0 +1,39 @@
+/*
+ * The page around the components.
+ *
+ * GrytProvider themes its own element — it defines the variables and styles
+ * what is inside it — but it does not touch the document. Without this the
+ * console renders Gryt cards on a white browser-default page in Times.
+ */
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--gryt-neutral-1);
+  color: var(--gryt-neutral-12);
+  font-family: var(--gryt-font-body, ui-sans-serif, system-ui, sans-serif);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The provider renders a plain div, so it has to be told to fill the page. */
+#root > * {
+  min-height: 100vh;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/*
+ * A grid column is auto-width by default, so it sizes to the textarea's
+ * intrinsic `cols` and the field renders wider than the card holding it —
+ * measured at 620px inside a 618px card. minmax(0, 1fr) caps the track at the
+ * container instead.
+ */
+form {
+  grid-template-columns: minmax(0, 1fr);
+}
