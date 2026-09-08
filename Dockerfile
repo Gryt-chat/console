@@ -14,6 +14,18 @@ WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY server ./server
 
+# The lockout ledger's directory, made here so it belongs to the user that has
+# to write it.
+#
+# Docker initialises an empty named volume from the image path it is mounted at,
+# ownership included. Without this the path does not exist in the image, so the
+# volume is created root-owned, the container runs as node, and the ledger falls
+# back to memory — which means a restart forgives every lockout, silently apart
+# from one line at boot. Exactly the same mistake as the config bind mount, one
+# layer along.
+RUN mkdir -p /data && chown node:node /data
+VOLUME /data
+
 USER node
 EXPOSE 3002
 
