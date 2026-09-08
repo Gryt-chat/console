@@ -4,6 +4,9 @@
  * GrytProvider themes its own element — it defines the variables and styles
  * what is inside it — but it does not touch the document. Without this the
  * console renders Gryt cards on a white browser-default page in Times.
+ *
+ * Everything below the reset is layout for the dashboard. Colours all come from
+ * Gryt's tokens, so the console follows the app's theme rather than having one.
  */
 
 body {
@@ -36,4 +39,390 @@ body {
  */
 form {
   grid-template-columns: minmax(0, 1fr);
+}
+
+/* ── Shell ──────────────────────────────────────────────────────────── */
+
+.console {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 32px 20px 72px;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.mark {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: var(--gryt-radius-full);
+  background: var(--gryt-accent-9);
+}
+
+.title {
+  min-width: 0;
+}
+
+.title h1 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.title p {
+  margin: 1px 0 0;
+  color: var(--gryt-neutral-11);
+  font-size: 13px;
+}
+
+/*
+ * The headline sits at the far end of the header and is the one thing on this
+ * page somebody reads from across a room.
+ */
+.headline {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 5px 11px;
+  border-radius: var(--gryt-radius-full);
+  border: 1px solid var(--gryt-neutral-6);
+  font-size: 13px;
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.headline.good {
+  color: var(--gryt-success-11, #3dd68c);
+  border-color: var(--gryt-success-6, #2a5a42);
+}
+
+.headline.bad {
+  color: var(--gryt-danger-11, #ff9592);
+  border-color: var(--gryt-danger-6, #6b2b2f);
+}
+
+.headline.unknown {
+  color: var(--gryt-neutral-11);
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.panel {
+  outline: none;
+}
+
+.stack {
+  display: grid;
+  gap: 14px;
+}
+
+.muted {
+  margin: 0;
+  color: var(--gryt-neutral-11);
+  font-size: 13.5px;
+}
+
+.signin {
+  max-width: 420px;
+}
+
+/* ── Announcement ───────────────────────────────────────────────────── */
+
+.live {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.live-when {
+  display: block;
+  margin-top: 4px;
+  opacity: 0.75;
+  font-size: 12px;
+}
+
+.post-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.post-type {
+  width: 170px;
+  flex: 0 0 auto;
+}
+
+.count {
+  color: var(--gryt-neutral-11);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.post-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* ── Services ───────────────────────────────────────────────────────── */
+
+.groups {
+  display: grid;
+  gap: 18px;
+}
+
+.group-name {
+  margin: 0 0 6px;
+  color: var(--gryt-neutral-11);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.group-rows {
+  display: grid;
+  gap: 2px;
+}
+
+.service {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 10px;
+  border-radius: var(--gryt-radius-md);
+}
+
+.service:hover {
+  background: var(--gryt-neutral-2);
+}
+
+.service.down {
+  background: var(--gryt-danger-2, rgba(229, 72, 77, 0.08));
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--gryt-radius-full);
+}
+
+.dot.up {
+  background: var(--gryt-success-9, #30a46c);
+}
+
+.dot.down {
+  background: var(--gryt-danger-9, #e5484d);
+}
+
+.service-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.service-why {
+  color: var(--gryt-danger-11, #ff9592);
+  font-size: 11.5px;
+  font-family: var(--gryt-font-mono, ui-monospace, monospace);
+  overflow-wrap: anywhere;
+}
+
+/* Oldest on the left. Bars rather than a percentage: a run of failures and the
+   same number scattered across a day are different problems. */
+.strip {
+  display: flex;
+  gap: 2px;
+  align-items: flex-end;
+}
+
+.tick {
+  width: 3px;
+  height: 14px;
+  border-radius: 1px;
+}
+
+.tick.up {
+  background: var(--gryt-success-7, #2a6f4d);
+}
+
+.tick.down {
+  background: var(--gryt-danger-9, #e5484d);
+}
+
+.service-latency,
+.service-when {
+  color: var(--gryt-neutral-11);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.service-latency {
+  min-width: 58px;
+}
+
+.service-when {
+  min-width: 76px;
+}
+
+/* ── History ────────────────────────────────────────────────────────── */
+
+.log {
+  display: grid;
+  gap: 2px;
+}
+
+.entry {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px;
+  border-radius: var(--gryt-radius-md);
+}
+
+.entry:hover {
+  background: var(--gryt-neutral-2);
+}
+
+.entry-dot {
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: var(--gryt-radius-full);
+}
+
+.entry-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.entry-when {
+  color: var(--gryt-neutral-11);
+  font-size: 12px;
+}
+
+.entry-message {
+  margin: 5px 0 2px;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.entry-exact {
+  color: var(--gryt-neutral-11);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Access ─────────────────────────────────────────────────────────── */
+
+.rows {
+  display: grid;
+  gap: 2px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border-radius: var(--gryt-radius-md);
+}
+
+.row:hover {
+  background: var(--gryt-neutral-2);
+}
+
+.row.locked {
+  background: var(--gryt-warning-2, rgba(245, 165, 36, 0.08));
+}
+
+.ip {
+  font-family: var(--gryt-font-mono, ui-monospace, monospace);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.row-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.row-note {
+  color: var(--gryt-neutral-11);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.row-when {
+  margin-left: auto;
+  color: var(--gryt-neutral-11);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.row-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.ban-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding-top: 4px;
+}
+
+@media (max-width: 620px) {
+  .service {
+    grid-template-columns: 8px minmax(0, 1fr) auto;
+  }
+
+  .strip,
+  .service-when {
+    display: none;
+  }
+
+  .ban-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .post-type {
+    width: 100%;
+  }
+
+  .post-actions {
+    margin-left: 0;
+  }
+
+  .row-when {
+    margin-left: 0;
+  }
+
+  /* The pill wraps to its own line rather than squeezing the title into four
+     words a line. Indented to sit under the title, not under the mark. */
+  .headline {
+    margin-left: 42px;
+  }
 }

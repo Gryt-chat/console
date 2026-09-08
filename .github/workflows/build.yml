@@ -28,7 +28,12 @@ jobs:
 
       - run: npm ci
 
-      # tsc first, so a type error fails here rather than inside the image build.
+      # The lockout ledger decides who may try the password, so it is checked
+      # before anything else. It takes `now` as a parameter, so the tests assert
+      # on a lockout expiring without waiting fifteen minutes for it.
+      - run: npm test
+
+      # tsc next, so a type error fails here rather than inside the image build.
       - run: npm run build
 
       - name: Log in to GHCR

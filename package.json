@@ -9,10 +9,11 @@
     "preview": "vite preview",
     "lint": "tsc -b",
     "serve": "node server/index.mjs",
-    "hash-password": "node server/hash-password.mjs"
+    "hash-password": "node server/hash-password.mjs",
+    "test": "node --test server/*.test.mjs"
   },
   "dependencies": {
-    "@gryt/ui": "^0.28.0",
+    "@gryt/ui": "^0.29.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

@@ -1,29 +1,13 @@
-import { Alert, Button, Card, CardContent, CardHeader, Select, Spinner, TextField } from "@gryt/ui";
-import { useEffect, useState } from "react";
+import { Alert, Button, Card, CardContent, CardHeader, Spinner, Tabs, TextField } from "@gryt/ui";
+import { useCallback, useEffect, useState } from "react";
 
-import { announce, getState, resolve, signIn, type Severity, type State } from "./api";
+import { getOverview, type Overview as OverviewData, signIn } from "./api";
+import { Access } from "./panels/Access";
+import { History } from "./panels/History";
+import { Overview } from "./panels/Overview";
 
-const SEVERITIES = [
-  { label: "Outage", value: "outage" },
-  { label: "Warning", value: "warning" },
-  { label: "Information", value: "information" },
-];
-
-/** UTC and spelled out, because the server's clock is not the reader's. */
-function when(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return (
-    d.toLocaleString("en-GB", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZone: "UTC",
-    }) + " UTC"
-  );
-}
+/** How often the overview refreshes itself while somebody is watching it. */
+const REFRESH_MS = 30_000;
 
 function SignIn({ onDone }: { onDone: () => void }) {
   const [password, setPassword] = useState("");
@@ -40,162 +24,130 @@ function SignIn({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <Card>
-      <CardHeader title="Sign in" subheader="The password is in Bitwarden." />
-      <CardContent>
-        <form onSubmit={submit} style={{ display: "grid", gap: 12 }}>
-          {error ? <Alert severity="error">{error}</Alert> : null}
-          <TextField
-            type="password"
-            placeholder="Password"
-            autoFocus
-            required
-            value={password}
-            onChange={(e) => setPassword(e.currentTarget.value)}
-          />
-          <div>
-            <Button type="submit" disabled={busy}>
-              {busy ? <Spinner size={16} /> : null} Sign in
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
-  );
-}
-
-function Announce({ state, reload }: { state: State; reload: () => void }) {
-  const [message, setMessage] = useState("");
-  const [type, setType] = useState<Severity>("outage");
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const live = state.announcement;
-
-  async function run(work: () => Promise<string | null>) {
-    setBusy(true);
-    const failed = await work();
-    setBusy(false);
-    setError(failed);
-    if (!failed) {
-      setMessage("");
-      reload();
-    }
-  }
-
-  return (
-    <div style={{ display: "grid", gap: 14 }}>
+    <div className="signin">
       <Card>
-        <CardHeader
-          title="Announcement"
-          subheader="Everyone signed in sees this until you resolve it."
-        />
+        <CardHeader title="Sign in" subheader="The password is in Bitwarden." />
         <CardContent>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              run(() => announce(message, type));
-            }}
-            style={{ display: "grid", gap: 12 }}
-          >
+          <form onSubmit={submit} className="stack">
             {error ? <Alert severity="error">{error}</Alert> : null}
-
-            {live ? (
-              <Alert severity="error">
-                <strong>Live now.</strong> {live.message}
-                <span style={{ display: "block", opacity: 0.75, fontSize: 12, marginTop: 3 }}>
-                  Posted {when(live.timestamp)}
-                </span>
-              </Alert>
-            ) : (
-              <Alert severity="info">Nothing announced. No banner is showing in the client.</Alert>
-            )}
-
             <TextField
-              multiline
-              minRows={3}
-              maxLength={240}
+              type="password"
+              placeholder="Password"
+              autoFocus
               required
-              placeholder="An issue has appeared and we are investigating it."
-              value={message}
-              onChange={(e) => setMessage(e.currentTarget.value)}
+              value={password}
+              onChange={(e) => setPassword(e.currentTarget.value)}
             />
-            <div style={{ display: "flex", gap: 10 }}>
-              <div style={{ flex: 1 }}>
-                <Select
-                  options={SEVERITIES}
-                  value={type}
-                  onValueChange={(v: unknown) => setType(String(v) as Severity)}
-                />
-              </div>
-              <Button type="submit" disabled={busy || !message.trim()}>
-                Post
+            <div>
+              <Button type="submit" disabled={busy}>
+                {busy ? <Spinner size={16} /> : null} Sign in
               </Button>
             </div>
           </form>
         </CardContent>
       </Card>
-
-      {live ? (
-        <Card>
-          <CardHeader
-            title="Resolve"
-            subheader="Marks it over on the status page and stops the banner."
-          />
-          <CardContent>
-            <Button tone="neutral" disabled={busy} onClick={() => run(resolve)}>
-              Post the all-clear
-            </Button>
-          </CardContent>
-        </Card>
-      ) : null}
     </div>
   );
 }
 
+/**
+ * The one line at the top that says whether anything is wrong.
+ *
+ * Above the tabs, because it is the answer to the question somebody opened this
+ * page with, and it should not depend on which tab they happen to be on.
+ */
+function Headline({ data }: { data: OverviewData }) {
+  const down = data.services.filter((s) => s.up === false);
+
+  if (data.servicesError) {
+    return <span className="headline unknown">Gatus did not answer</span>;
+  }
+  if (down.length > 0) {
+    return (
+      <span className="headline bad">
+        {down.length} {down.length === 1 ? "service" : "services"} down
+      </span>
+    );
+  }
+  if (data.services.length === 0) {
+    return <span className="headline unknown">Checking</span>;
+  }
+  return <span className="headline good">All {data.services.length} checks passing</span>;
+}
+
 export function App() {
-  const [state, setState] = useState<State | null>(null);
+  const [data, setData] = useState<OverviewData | null>(null);
 
-  const reload = () => {
-    getState()
-      .then(setState)
-      .catch(() => setState({ signedIn: false, announcement: null }));
-  };
+  const reload = useCallback(() => {
+    getOverview()
+      .then(setData)
+      .catch(() =>
+        setData({ signedIn: false, announcement: null, services: [], servicesError: null }),
+      );
+  }, []);
 
-  useEffect(reload, []);
+  useEffect(reload, [reload]);
+
+  /* Refreshed on a timer because this page is left open during an incident, and
+     a dashboard that needs reloading to tell you anything new is a screenshot. */
+  useEffect(() => {
+    if (!data?.signedIn) return;
+    const timer = setInterval(reload, REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [data?.signedIn, reload]);
+
+  if (data === null) {
+    return (
+      <main className="console">
+        <Spinner size={20} />
+      </main>
+    );
+  }
+
+  if (!data.signedIn) {
+    return (
+      <main className="console">
+        <Header data={null} />
+        <SignIn onDone={reload} />
+      </main>
+    );
+  }
 
   return (
-    <main style={{ maxWidth: 620, margin: "0 auto", padding: "40px 20px 64px" }}>
-      <header style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div
-          style={{
-            width: 30,
-            height: 30,
-            borderRadius: "var(--gryt-radius-full)",
-            background: "var(--gryt-accent-9)",
-          }}
-        />
-        <h1 style={{ fontSize: 19, fontWeight: 650, margin: 0, letterSpacing: "-0.01em" }}>
-          Status console
-        </h1>
-      </header>
-      <p
-        style={{
-          color: "var(--gryt-neutral-11)",
-          fontSize: 13.5,
-          margin: "4px 0 26px 42px",
-        }}
-      >
-        Posts to status.gryt.chat and to every signed-in Gryt client.
-      </p>
+    <main className="console">
+      <Header data={data} />
 
-      {state === null ? (
-        <Spinner size={20} />
-      ) : state.signedIn ? (
-        <Announce state={state} reload={reload} />
-      ) : (
-        <SignIn onDone={reload} />
-      )}
+      <Tabs defaultValue="overview">
+        <Tabs.List className="tabs">
+          <Tabs.Tab value="overview">Overview</Tabs.Tab>
+          <Tabs.Tab value="history">History</Tabs.Tab>
+          <Tabs.Tab value="access">Access</Tabs.Tab>
+          <Tabs.Indicator />
+        </Tabs.List>
+
+        <Tabs.Panel value="overview" className="panel">
+          <Overview data={data} reload={reload} />
+        </Tabs.Panel>
+        <Tabs.Panel value="history" className="panel">
+          <History />
+        </Tabs.Panel>
+        <Tabs.Panel value="access" className="panel">
+          <Access />
+        </Tabs.Panel>
+      </Tabs>
     </main>
+  );
+}
+
+function Header({ data }: { data: OverviewData | null }) {
+  return (
+    <header className="top">
+      <div className="mark" aria-hidden="true" />
+      <div className="title">
+        <h1>Gryt console</h1>
+        <p>Posts to status.gryt.chat and to every signed-in Gryt client.</p>
+      </div>
+      {data ? <Headline data={data} /> : null}
+    </header>
   );
 }
