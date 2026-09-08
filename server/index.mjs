@@ -16,7 +16,7 @@
 
 import { createHmac, scryptSync, timingSafeEqual } from "node:crypto";
 import { createServer } from "node:http";
-import { readFileSync, renameSync, writeFileSync, existsSync, copyFileSync } from "node:fs";
+import { readFileSync, renameSync, writeFileSync, existsSync, copyFileSync, accessSync, constants } from "node:fs";
 import { extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -205,7 +205,7 @@ function currentAnnouncement() {
   return live[live.length - 1] ?? null;
 }
 
-createServer(async (req, res) => {
+async function handle(req, res) {
   const path = new URL(req.url, "http://x").pathname;
   const ip = req.headers["cf-connecting-ip"] || req.socket.remoteAddress || "?";
   const session = validSession(cookieFrom(req));
@@ -275,6 +275,26 @@ createServer(async (req, res) => {
 
   if (!session) return json(res, 401, { error: "Sign in first." });
 
+  /**
+   * A write that fails must not take the process with it.
+   *
+   * It did: an EACCES on the config directory threw out of the handler, Node
+   * exited, and the console answered 502 until Docker restarted it. The person
+   * posting saw a failed request with no reason, which is the worst outcome for
+   * a page whose whole job is explaining an outage.
+   */
+  const write = (list) => {
+    try {
+      writeAnnouncements(list);
+      return null;
+    } catch (err) {
+      console.error("could not write the announcement:", err);
+      return err.code === "EACCES"
+        ? `Cannot write ${FILE}. The config directory is not writable by this container.`
+        : `Could not write the announcement: ${err.message}`;
+    }
+  };
+
   if (action === "announce") {
     const message = String(input.message ?? "").trim().slice(0, MAX_MESSAGE);
     if (!message) return json(res, 400, { error: "Say what is wrong." });
@@ -285,7 +305,9 @@ createServer(async (req, res) => {
        page keeps the history of an incident that got updated. */
     const list = readAnnouncements().map((a) => ({ ...a, archived: true }));
     list.push({ timestamp: new Date().toISOString(), type, message });
-    writeAnnouncements(list);
+
+    const failed = write(list);
+    if (failed) return json(res, 500, { error: failed });
 
     return json(res, 200, { signedIn: true, announcement: currentAnnouncement() });
   }
@@ -299,14 +321,46 @@ createServer(async (req, res) => {
       type: "operational",
       message: "Resolved. Everything is back to normal.",
     });
-    writeAnnouncements(list);
+
+    const failed = write(list);
+    if (failed) return json(res, 500, { error: failed });
 
     return json(res, 200, { signedIn: true, announcement: null });
   }
 
   return json(res, 404, { error: "No such thing." });
+}
+
+/**
+ * One catch around every request.
+ *
+ * Node exits on an unhandled rejection, so a throw anywhere in the handler
+ * took the whole console down and answered 502 until Docker restarted it. An
+ * EACCES writing announcements.yaml did exactly that. A 500 the person can
+ * read is a much smaller failure than a process that disappears.
+ */
+createServer((req, res) => {
+  handle(req, res).catch((err) => {
+    console.error(`${req.method} ${req.url} failed:`, err);
+    if (res.headersSent) return res.end();
+    json(res, 500, { error: "Something went wrong. The container log has it." });
+  });
 }).listen(PORT, "0.0.0.0", () => {
   console.log(`status console on :${PORT}, writing ${FILE}`);
+
+  /* Said at boot rather than at the first post. The config directory is a bind
+     mount, and Docker does not chown those, so a root-owned directory on the
+     host leaves this container — which runs as node — unable to write the one
+     file it exists to write. It looked like a broken page rather than a
+     permission problem, because the throw killed the process. */
+  try {
+    accessSync(CONFIG_DIR, constants.W_OK);
+  } catch {
+    console.warn(
+      `${CONFIG_DIR} is not writable by uid ${process.getuid?.() ?? "?"} — ` +
+        "posting an announcement will fail. chown the directory to this uid on the host.",
+    );
+  }
   if (!PASSWORD_HASH) console.warn("CONSOLE_PASSWORD_HASH is not set — nobody can sign in.");
   else if (!parseHash())
     console.warn(
