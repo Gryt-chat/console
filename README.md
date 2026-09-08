@@ -83,10 +83,13 @@ next to the Gatus service it shares a config directory with.
 
 ## Serving under a path
 
-The tunnel routes `status.gryt.chat/console` here and forwards the whole path,
-so every URL the app emits has to resolve under that prefix. Vite builds asset
-URLs relative, and the server injects a matching `<base href>` per request — so
-the same build works at `/console` and at `/` without being told which.
+It lives at [console.gryt.chat](https://console.gryt.chat) now, at the root. It
+was at `status.gryt.chat/console` first, which is a path nobody can remember at
+the moment they need it.
+
+The prefix support stayed. Vite builds asset URLs relative, and the server
+injects a matching `<base href>` per request, so the same build works at `/`
+and under any path without being told which.
 
 Anything absolute would leave the mount and land on the status page instead.
 That has already happened twice: once with form actions, once with the
