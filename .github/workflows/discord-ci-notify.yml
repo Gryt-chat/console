@@ -1,0 +1,15 @@
+name: Discord CI notification
+
+# Reports failed runs to #ci. Every workflow has to be listed by name: an
+# unlisted one notifies nobody, and a wildcard is not documented to work.
+
+on:
+  workflow_run:
+    workflows:
+      - Build console image
+    types: [completed]
+
+jobs:
+  notify:
+    uses: Gryt-chat/.github/.github/workflows/discord-ci-notify.yml@main
+    secrets: inherit
