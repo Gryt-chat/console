@@ -105,12 +105,9 @@ the generated password being long, not a cleverer ban list.
 
 ## Deploying
 
-Push to `main`. CI builds and pushes `ghcr.io/gryt-chat/console:latest`, and the
-VPS pulls it:
-
-```bash
-ssh vps 'cd /opt/gryt-status && docker compose pull console && docker compose up -d console'
-```
+Releases are by hand. Run **Build console image** from the Actions tab on `main`.
+That builds and pushes `ghcr.io/gryt-chat/console:latest`, and the server's update
+timer pulls it within five minutes. A merge to `main` only builds.
 
 The compose file lives in the `gryt` superproject at `ops/internal/status/`,
 next to the Gatus service it shares a config directory with. It mounts two
